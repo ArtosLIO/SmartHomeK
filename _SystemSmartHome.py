@@ -28,20 +28,20 @@ connpass = '123qwe'
 addr_from = "lukienko.igor411@gmail.com"
 addr_to = "lukienko.igor411@gmail.com"
 password = "23l07i04o06"
-pin_security = # pin датчика движения
-GPIO_light = # pin светодиода
-GPIO_temperature = # pin датчика температуры
+pin_security = 14 # pin датчика движения
+GPIO_temperature = 17 # pin датчика температуры
+pin_light_security = 16 # Z 
+pin_light_temperature = 20 # Z
+GPIO_light = 21 # pin светодиода
 GPIO.setmode(GPIO.BCM)
-GPIO.setup([pin_security, GPIO_light, GPIO_temperature], GPIO.OUT)
+setting_GPIO = [pin_security, GPIO_temperature, GPIO_light, pin_light_security, pin_light_temperature]
+GPIO.setup(setting_GPIO, GPIO.OUT)
 pwm = GPIO.PWM(GPIO_light, 8500)
 pwm.start(0)
 arrmini = []
 arrmax = []
 arrx = []
 arry = []
-
-style = ttk.Style()
-style.configure(".", foreground="black", background="white")
 
 
 conf = configparser.RawConfigParser()
@@ -60,8 +60,8 @@ else:
 
 root = Tk()
 root.geometry('{w}x{h}'.format(w=root.winfo_screenwidth(), h=root.winfo_screenheight()))
-fig = plt.figure() #создание екзампляра контейнера графика
-ax = fig.add_subplot(111) #Создание графика
+fig = plt.figure() # создание екзампляра контейнера графика
+ax = fig.add_subplot(111) # Создание графика
 
 
 try:
