@@ -121,7 +121,7 @@ def send(pin):
     if GPIO.input(pin) == 1:
         lb_security_messenger.configure(text='В доме не безопасно')
         body = 'В доме не безопасно'
-    else GPIO.input(pin) == 0:
+    else:
         lb_security_messenger.configure(text='В доме безопасно')
         body = 'В доме безопасно'
     lb.config(text=body)
