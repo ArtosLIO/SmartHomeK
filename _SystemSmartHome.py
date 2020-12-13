@@ -45,36 +45,44 @@ else:
     conf.add_section("temperature")
     conf.set("temperature", "top_border", 27)
     conf.set("temperature", "low_border", 23)
+    max_temperature = 27
+    min_temperature = 23
     with open(patch+"/setting.conf", "w") as config:
         conf.write(config)
 
 
 root = Tk()
 root.geometry('{w}x{h}'.format(w=root.winfo_screenwidth(), h=root.winfo_screenheight()))
+root.title("SmartHome")
 fig = plt.figure() # создание екзампляра контейнера графика
 ax = fig.add_subplot(111) # Создание графика
 
 
 def runSecurity():
+    global security, pin_light_security
     if security:
         security = False
         bt_sectrity_run.configure(text='Включить систему безопасности')
+        GPIO.output(pin_light_security, GPIO.HIGH)
     else:
         security = True
         bt_sectrity_run.configure(text='Выключить систему безопасности')
+        GPIO.output(pin_light_security, GPIO.LOW)
 
 
 def lamp_manipulate():
-    global lighting
+    global GPIO_light
     
     if not GPIO.input(GPIO_light):
         pwm.ChangeDutyCycle(100)
+        sl_scaling_light.set(100)
         bt_lamp_manipulate.configure(text='Выключить свет')
         lb_lamp_vv.configure(text='Включен')
     else:
         pwm.ChangeDutyCycle(0)
         bt_lamp_manipulate.configure(text='Включить свет')
         lb_lamp_vv.configure(text='Выключен')
+        sl_scaling_light.set(0)
 
 
 def lamp_scaling(val): #Регулировка света
@@ -88,7 +96,7 @@ def heating_manipulate():
     global min_temperature, max_temperature
     
     try:
-        if en_heating_manipulate_min.get() != '' and en_heating_manipulate_min.get() < en_heating_manipulate_max.get():
+        if en_heating_manipulate_min.get() != '' and (en_heating_manipulate_min.get() < en_heating_manipulate_max.get()):
             min_temperature = int(en_heating_manipulate_min.get())
         if en_heating_manipulate_max.get() != '' and en_heating_manipulate_max.get() > en_heating_manipulate_min.get():
             max_temperature = int(en_heating_manipulate_max.get())
@@ -101,26 +109,34 @@ def heating_manipulate():
 
 
 def send(pin):
-    global pin_security    
+    global pin_security, security
 
     if security:
         if GPIO.input(pin_security) == 1:
-            lb_security_messenger.configure(text='В доме ОПАСНО!')
+            try:
+                lb_security_messenger.configure(text='В ДОМЕ ОПАСНО!')
+            except:
+                pass
         else:
-            lb_security_messenger.configure(text='В доме безопасно.')
+            try:
+                lb_security_messenger.configure(text='В ДОМЕ БЕЗОПАСНО')
+            except:
+                pass
     else:
         if GPIO.input(pin_security) == 1:
             pwm.ChangeDutyCycle(100)
+            sl_scaling_light.set(100)
             lb_lamp_vv.configure(text='Включен')
+            bt_lamp_manipulate.configure(text='Выключить свет')
         else:
             pwm.ChangeDutyCycle(0)
+            sl_scaling_light.set(0)
             lb_lamp_vv.configure(text='Выключен')
+            bt_lamp_manipulate.configure(text='Включить свет')
 
 
 def animation(i):
-    global min_temperature, max_temperature, arrx, arry, arrmax, arrmini
-    
-    print(sensor.get_temperature())
+    global min_temperature, max_temperature, arrx, arry, arrmax, arrmini, pin_light_temperature
     
     if sensor.get_temperature() < min_temperature:
         GPIO.output(pin_light_temperature, GPIO.HIGH)
@@ -152,7 +168,7 @@ def animation(i):
     ax.xaxis_date()
 
 canvas = FigureCanvasTkAgg(fig, master=root) #отображение в окне
-anim = FuncAnimation(fig, animation, interval=1000)
+anim = FuncAnimation(fig, animation, interval=500)
 
 
 lb_lamp = Label(text='Состояние освещения:')
@@ -179,6 +195,9 @@ bt_heating_manipulate = Button(text='Подтвердить изменение',
 bt_lamp_manipulate = Button(text='Включить свет', command=lamp_manipulate)
 bt_sectrity_run = Button(text='Выключить систему безопасности', command=runSecurity)
 
+lb_scaling_light = Label(root, text="Регулировка яркости")
+sl_scaling_light = Scale(root, orient=HORIZONTAL, from_=0, to=100, resolution=1, length=200, command=lamp_scaling)
+
 lb_security_messenger = Label(text='В доме безопасно')
 
 
@@ -190,22 +209,26 @@ lb_heating.grid(row=2, column=1)
 lb_heating_vv.grid(row=2, column=2)
 
 lb_heating_min.grid(row=3, column=1)
-lb_heating_max_size.grid(row=3, column=2)
+lb_heating_min_size.grid(row=3, column=2)
 lb_heating_max.grid(row=4, column=1)
 lb_heating_max_size.grid(row=4, column=2)
-lb_heating_manipulate.grid(row=5, column=1, columnspan=2)
 
+lb_heating_manipulate.grid(row=5, column=1, columnspan=2)
 en_heating_manipulate_min.grid(row=6, column=2)
 en_heating_manipulate_max.grid(row=7, column=2)
 lb_heating_manipulate_error.grid(row=8, column=1, columnspan=2)
 
-bt_lamp_manipulate.grid(row=9, column=3, columnspan=2)
-bt_heating_manipulate.grid(row=9, column=1, columnspan=2)
-bt_sectrity_run.grid(row=10, column=2)
+bt_lamp_manipulate.grid(row=1, column=3, columnspan=2)
+bt_heating_manipulate.grid(row=5, column=2, columnspan=2)
+bt_sectrity_run.grid(row=9, column=1, columnspan=2)
+lb_security_messenger.grid(row=9, column=3)
+
+lb_scaling_light.grid(row=10, column=1)
+sl_scaling_light.grid(row=10, column=2, columnspan=2)
 
 canvas.get_tk_widget().grid(row=11, column=1, columnspan=3)
 
-lb_security_messenger.grid(row=8, column=3)
+
 
 
 GPIO.add_event_detect(pin_security, GPIO.BOTH, callback=send)
