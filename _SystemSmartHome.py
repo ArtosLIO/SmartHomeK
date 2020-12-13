@@ -15,27 +15,23 @@ from w1thermsensor import W1ThermSensor # Подключение к датчик
 import RPi.GPIO as GPIO # Подключение к вход/выход Малинки
 
 
+GPIO.setwarnings(False)
 security = True
 sensor = W1ThermSensor()
 temperature = 0.0
-min_temperature = 0.0
-max_temperature = 0.0
-date_time_temperature = 0
+min_temperature = 23.0
+max_temperature = 27.0
 connect_bd = False # Проверка подключения БД
 lighting = False # Проверка включен ли свет
-connuser = 'myuser'
-connpass = '123qwe'
-addr_from = "lukienko.igor411@gmail.com"
-addr_to = "lukienko.igor411@gmail.com"
-password = "23l07i04o06"
+index_graph = False
 pin_security = 14 # pin датчика движения
-GPIO_temperature = 17 # pin датчика температуры
+GPIO_temperature = 4 # pin датчика температуры
 pin_light_security = 16 # Z 
 pin_light_temperature = 20 # Z
 GPIO_light = 21 # pin светодиода
 GPIO.setmode(GPIO.BCM)
-setting_GPIO = [pin_security, GPIO_temperature, GPIO_light, pin_light_security, pin_light_temperature]
-GPIO.setup(setting_GPIO, GPIO.OUT)
+GPIO.setup([GPIO_temperature, GPIO_light, pin_light_security, pin_light_temperature], GPIO.OUT)
+GPIO.setup(pin_security, GPIO.IN)
 pwm = GPIO.PWM(GPIO_light, 8500)
 pwm.start(0)
 arrmini = []
@@ -62,19 +58,6 @@ root = Tk()
 root.geometry('{w}x{h}'.format(w=root.winfo_screenwidth(), h=root.winfo_screenheight()))
 fig = plt.figure() # создание екзампляра контейнера графика
 ax = fig.add_subplot(111) # Создание графика
-
-
-try:
-    connector = mysql.connector.connect(
-        user=connuser,
-        password=connpass,
-        host='localhost',
-        database='smarthome'
-        )
-    print("Connect by BD: successfully")
-    connect_bd = True
-except:
-    print("Connect by BD: Error")
     
 
 def lamp_manipulate():
@@ -83,10 +66,12 @@ def lamp_manipulate():
     if not lighting:
         lighting = True
         GPIO.output(GPIO_light, GPIO.HIGH)
+        pwm.ChangeDutyCycle(100)
         bt_lamp_manipulate.configure(text='Выключить свет')
     else:
         lighting = False
         GPIO.output(GPIO_light, GPIO.LOW)
+        pwm.ChangeDutyCycle(0)
         bt_lamp_manipulate.configure(text='Включить свет')
 
 
@@ -135,46 +120,19 @@ def send(pin):
 
 
 def animation(i):
-    global min_temperature, max_temperature, connector, date_time_temperature, arrx, arry, arrmax, arrmini
+    global min_temperature, max_temperature, arrx, arry, arrmax, arrmini
 
-    if connect_bd:
-        try:
-            dt = datetime.datetime.now().replace(microsecond=0)
-            date_now = '{}-{}-{} {}:{}:{}'.format(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-            
-            if date_time_temperature == 0:
-                hour = dt.hour - 1
-                date_future = '{}-{}-{} {}:{}:{}'.format(dt.year, dt.month, dt.day, hour, dt.minute, dt.second)
-            elif date_time_temperature == 1:
-                day = dt.day - 1
-                date_future = '{}-{}-{} {}:{}:{}'.format(dt.year, dt.month, day, dt.hour, dt.minute, dt.second)
-            elif date_time_temperature == 2:
-                month = dt.month - 1
-                date_future = '{}-{}-{} {}:{}:{}'.format(dt.year, month, dt.day, dt.hour, dt.minute, dt.second)
-            
-            cursor = connector.cursor()
-            cursor.execute('''SELECT * FROM data_temperature WHERE `date` BETWEEN \'{}\' AND \'{}\''''.format(date_future, date_now))
-            result = cursor.fetchone()
-            while result is not None:
-                arry.append(result[1])
-                arrx.append(result[2])
-                arrmini.append(min_temperature)
-                arrmax.append(max_temperature)
-                result = cursor.fetchone()
-        except:
-            pass
-    else:
-        if len(arry) >= 100:
-            arry.pop(0)
-            arrx.pop(0)
-            arrmax.pop(0)
-            arrmini.pop(0)
-
-#         arry.append(sensor.get_temperature())
-        arry.append(random.gauss(25, 2))
-        arrx.append(datetime.datetime.now())
-        arrmini.append(min_temperature)
-        arrmax.append(max_temperature)
+    if len(arry) >= 100:
+        arry.pop(0)
+        arrx.pop(0)
+        arrmax.pop(0)
+        arrmini.pop(0)
+    
+    arry.append(sensor.get_temperature())
+#     arry.append(random.gauss(25, 2))
+    arrx.append(datetime.datetime.now())
+    arrmini.append(min_temperature)
+    arrmax.append(max_temperature)
     
     ax.clear()
     ax.plot(arrx, arry, 'r', arrx, arrmax, 'g', arrx, arrmini, 'b') #для вывода данных
@@ -193,13 +151,13 @@ anim = FuncAnimation(fig, animation, interval=1000)
 
 def graph():
     global index_graph, arry, arrx
-    if index_graph == 0:
+    if index_graph == False:
         canvas.get_tk_widget().grid(row=11, column=1, columnspan=3)
-        index_graph = 1
+        index_graph = True
         bt_graph.configure(text='Убрать график')
     else:
         canvas.get_tk_widget().grid_forget()
-        index_graph = 0
+        index_graph = False
         bt_graph.configure(text='Вывести график')
 
 
