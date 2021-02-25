@@ -171,6 +171,7 @@ canvas = FigureCanvasTkAgg(fig, master=root) #отображение в окне
 anim = FuncAnimation(fig, animation, interval=500)
 
 
+
 lb_lamp = Label(text='Состояние освещения:')
 lb_lamp_vv = Label(text='Выключен')
 
@@ -202,7 +203,6 @@ lb_security_messenger = Label(text='В доме безопасно')
 
 
 
-
 lb_lamp.grid(row=1, column=1)
 lb_lamp_vv.grid(row=1, column=2)
 lb_heating.grid(row=2, column=1)
@@ -227,8 +227,6 @@ lb_scaling_light.grid(row=10, column=1)
 sl_scaling_light.grid(row=10, column=2, columnspan=2)
 
 canvas.get_tk_widget().grid(row=11, column=1, columnspan=3)
-
-
 
 
 GPIO.add_event_detect(pin_security, GPIO.BOTH, callback=send)
